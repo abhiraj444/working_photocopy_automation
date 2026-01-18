@@ -84,12 +84,14 @@ def print_pdf():
         dpi = data.get('dpi', 300)
         threads = data.get('threads', 4)
         printer = data.get('printer', None)
+        margin_mm = data.get('margin_mm', 0)  # Margin in millimeters
         
         # Create printer instance
         pdf_printer = WorkingPDFPrinter(
             printer_name=printer,
             dpi=dpi,
-            threads=threads
+            threads=threads,
+            margin_mm=margin_mm
         )
         
         # Print the PDF (synchronously - will block until done)

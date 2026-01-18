@@ -61,7 +61,8 @@ async function printSinglePDF(filePath: string, printerName: string): Promise<vo
             file_path: filePath,
             dpi: CONFIG.PRINT_DPI,
             threads: CONFIG.PRINT_WORKERS,
-            printer: printerName
+            printer: printerName,
+            margin_mm: CONFIG.PRINT_MARGIN_MM
         }, {
             timeout: 600000  // 10 minutes timeout for large PDFs
         });

@@ -66,10 +66,11 @@ except ImportError as e:
 class WorkingPDFPrinter:
     """PDF Printer with working GDI implementation"""
     
-    def __init__(self, printer_name: Optional[str] = None, dpi: int = 300, threads: int = 4):
+    def __init__(self, printer_name: Optional[str] = None, dpi: int = 300, threads: int = 4, margin_mm: int = 0):
         self.printer_name = printer_name or win32print.GetDefaultPrinter()
         self.dpi = dpi
         self.threads = threads
+        self.margin_mm = margin_mm  # Margin in millimeters
         
         # Pipeline queues
         self.job_queue = Queue()
@@ -92,7 +93,8 @@ class WorkingPDFPrinter:
         print(f"\nWorking PDF Printer Ready:")
         print(f"  Printer: {self.printer_name}")
         print(f"  DPI: {self.dpi}")
-        print(f"  Threads: {self.threads}\n")
+        print(f"  Threads: {self.threads}")
+        print(f"  Margins: {self.margin_mm}mm\n")
     
     def convert_worker(self, worker_id: int):
         """Convert PDF pages to images"""
@@ -187,17 +189,27 @@ class WorkingPDFPrinter:
                 printer_width = self.printer_dc.GetDeviceCaps(win32con.HORZRES)
                 printer_height = self.printer_dc.GetDeviceCaps(win32con.VERTRES)
                 
+                # Calculate margin in pixels (mm to pixels: mm * DPI / 25.4)
+                printer_dpi_x = self.printer_dc.GetDeviceCaps(win32con.LOGPIXELSX)
+                printer_dpi_y = self.printer_dc.GetDeviceCaps(win32con.LOGPIXELSY)
+                margin_x = int(self.margin_mm * printer_dpi_x / 25.4)
+                margin_y = int(self.margin_mm * printer_dpi_y / 25.4)
+                
+                # Reduce printable area by margins (margin on all 4 sides)
+                printable_width = printer_width - (2 * margin_x)
+                printable_height = printer_height - (2 * margin_y)
+                
                 # Get image dimensions
                 img_width, img_height = image.size
                 
-                # Calculate scaling to fit page while maintaining aspect ratio
-                scale = min(printer_width / img_width, printer_height / img_height)
+                # Calculate scaling to fit within printable area while maintaining aspect ratio
+                scale = min(printable_width / img_width, printable_height / img_height)
                 new_width = int(img_width * scale)
                 new_height = int(img_height * scale)
                 
-                # Center on page
-                x = (printer_width - new_width) // 2
-                y = (printer_height - new_height) // 2
+                # Center on page (including margins)
+                x = margin_x + (printable_width - new_width) // 2
+                y = margin_y + (printable_height - new_height) // 2
                 
                 # Use PIL's ImageWin module to create a DIB
                 dib = ImageWin.Dib(image)

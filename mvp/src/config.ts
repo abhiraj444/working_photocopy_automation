@@ -96,6 +96,15 @@ export const CONFIG = {
     PRINT_WORKERS: 16,
 
     /**
+     * Print Margins (millimeters)
+     * White space around content on A4 page
+     * 0 = No margins (full page)
+     * 10 = 10mm margins on all sides
+     * 20 = 20mm margins (recommended for professional look)
+     */
+    PRINT_MARGIN_MM: 15,
+
+    /**
      * Print Buffer Size
      * Maximum pages buffered in memory during printing
      */
