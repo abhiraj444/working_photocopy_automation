@@ -14,11 +14,17 @@ const PRINT_SERVER_URL = 'http://127.0.0.1:5000';
 
 /**
  * Print PDF files via Python Print Server
+ * @param filePaths - Array of PDF file paths to print
+ * @param printerName - Specific printer to use (for layout selection)
  */
-export async function printToPrinter(filePaths: string[]): Promise<void> {
+export async function printToPrinter(filePaths: string[], printerName?: string): Promise<void> {
+    // Use provided printer name or default from config
+    const selectedPrinter = printerName || CONFIG.PRINTER_NAME;
+
     logger.info({
         fileCount: filePaths.length,
-        serverUrl: PRINT_SERVER_URL
+        serverUrl: PRINT_SERVER_URL,
+        printer: selectedPrinter
     }, 'Sending print request to Python server');
 
     // Check if server is running
@@ -34,7 +40,7 @@ export async function printToPrinter(filePaths: string[]): Promise<void> {
     // Print each file
     for (const filePath of filePaths) {
         try {
-            await printSinglePDF(filePath);
+            await printSinglePDF(filePath, selectedPrinter);
         } catch (error) {
             logger.error({ error, filePath }, 'Failed to print PDF');
             throw error;
@@ -47,15 +53,15 @@ export async function printToPrinter(filePaths: string[]): Promise<void> {
 /**
  * Print a single PDF via HTTP request to Python server
  */
-async function printSinglePDF(filePath: string): Promise<void> {
-    logger.info({ filePath }, 'Sending to print server');
+async function printSinglePDF(filePath: string, printerName: string): Promise<void> {
+    logger.info({ filePath, printer: printerName }, 'Sending to print server');
 
     try {
         const response = await axios.post(`${PRINT_SERVER_URL}/print`, {
             file_path: filePath,
             dpi: CONFIG.PRINT_DPI,
             threads: CONFIG.PRINT_WORKERS,
-            printer: CONFIG.PRINTER_NAME
+            printer: printerName
         }, {
             timeout: 600000  // 10 minutes timeout for large PDFs
         });

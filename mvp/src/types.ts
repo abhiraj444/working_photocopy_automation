@@ -1,18 +1,12 @@
 /**
- * TypeScript type definitions for WhatsApp Print Bot
+ * TypeScript type definitions
  */
 
-// Individual PDF file metadata
-export interface JobFile {
-    fileName: string;
-    filePath: string;
-    pageCount?: number;  // Undefined until counted
-}
-
-// Job states (8 total)
+// Job states (9 total now - added AWAITING_LAYOUT)
 export type JobState =
     | 'PENDING'                      // Files uploaded, waiting for user message
     | 'AWAITING_CONFIRMATION'        // Showing file list, waiting for YES/SKIP
+    | 'AWAITING_LAYOUT'              // Waiting for layout choice (1/2/4)
     | 'AWAITING_REMOVAL'             // User said SKIP, waiting for file numbers
     | 'AWAITING_FINAL_CONFIRMATION'  // After removal, waiting for YES
     | 'PROCESSING'                   // Processing files
@@ -20,44 +14,53 @@ export type JobState =
     | 'COMPLETED'                    // Job done
     | 'CANCELLED';                   // User cancelled or timeout
 
-// User job
+// Print layout options
+export type PrintLayout = '1' | '2' | '4';  // 1=Normal, 2=2-on-1, 4=4-on-1
+
+// PDF file info
+export interface JobFile {
+    fileName: string;
+    filePath: string;
+    pageCount: number | undefined;
+}
+
+// User job data
 export interface UserJob {
     phoneNumber: string;
-    state: JobState;
     files: JobFile[];
-    filesExcluded: string[];  // Files to skip
+    filesExcluded: string[];
+    state: JobState;
     createdAt: Date;
-    lastActivityAt: Date;
-    expiresAt: Date;  // createdAt + 24 hours
+    expiresAt: Date;
+    layout?: PrintLayout;  // User's selected layout (1/2/4)
 }
 
-// Pipeline configuration
+// Pipeline options
 export interface PipelineOptions {
-    workerCount: number;      // Number of conversion threads
-    dpi: number;              // Image quality
-    bufferSize: number;       // Max buffered pages
-    printerName: string;      // Windows printer name
+    workerCount: number;
+    dpi: number;
+    bufferSize: number;
+    printerName: string;
 }
 
-// Single page conversion job
+// Page job for pipeline
 export interface PageJob {
     pdfPath: string;
     pageNumber: number;
     totalPages: number;
 }
 
-// Converted image data
+// Converted page image
 export interface PageImage {
     pageNumber: number;
     imageBuffer: Buffer;
 }
 
-// Performance tracking metrics
+// Print performance metrics
 export interface PrintMetrics {
+    startTime: number;
+    endTime?: number;
     totalPages: number;
     convertedPages: number;
     printedPages: number;
-    conversionTimeAvg: number;
-    printTimeAvg: number;
-    startTime: Date;
 }

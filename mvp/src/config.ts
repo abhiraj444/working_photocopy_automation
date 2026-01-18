@@ -9,7 +9,7 @@
  *    - Press Win+R → type "control printers"
  *    - Copy the exact printer name
  * 
- * 2. Update PRINTER_NAME below
+ * 2. Update printer names below (PRINTER_NORMAL, PRINTER_2ON1, PRINTER_4ON1)
  * 
  * 3. Update OWNER_PHONE with your WhatsApp number
  *    - Format: 917840957524 (no + sign)
@@ -27,11 +27,25 @@ export const CONFIG = {
     // ============================================
 
     /**
-     * Windows Printer Name
-     * Find it: Control Panel → Devices and Printers
-     * Example: "Canon iR 7105", "HP LaserJet Pro", "best"
+     * Windows Printer Names for Different Layouts
+     * 
+     * IMPORTANT: Create 3 printer configurations in Windows:
+     * 1. PRINTER_NORMAL: 1 page per sheet (full price)
+     * 2. PRINTER_2ON1: 2 pages per sheet (half price) 
+     * 3. PRINTER_4ON1: 4 pages per sheet (quarter price)
+     * 
+     * How to create:
+     * - Add printer 3 times with different names
+     * - Configure each with different N-up settings in driver preferences
+     * 
+     * Example:
+     * - "best" = Normal (1-up)
+     * - "best_2on1" = 2 pages per sheet
+     * - "best_4on1" = 4 pages per sheet
      */
-    PRINTER_NAME: 'best',
+    PRINTER_NORMAL: 'best',
+    PRINTER_2ON1: 'best_2on1',
+    PRINTER_4ON1: 'best_4on1',
 
     /**
      * Owner's WhatsApp Number
@@ -45,6 +59,13 @@ export const CONFIG = {
     // ============================================
 
     /**
+     * Enable Layout Selection
+     * true = Allow users to choose Normal/2-on-1/4-on-1
+     * false = Always use normal printing (PRINTER_NORMAL)
+     */
+    ENABLE_LAYOUT_SELECTION: true,
+
+    /**
      * File Timer (seconds)
      * How long to wait after user sends files before showing list
      * Lower = faster response, but may miss multi-file uploads
@@ -53,7 +74,9 @@ export const CONFIG = {
 
     /**
      * Price Per Page (rupees)
-     * Cost charged per printed page
+     * Base cost per printed page (for normal 1-up printing)
+     * - 2-on-1 = half price
+     * - 4-on-1 = quarter price
      */
     PRICE_PER_PAGE: 0.50,
 
@@ -102,4 +125,16 @@ export const CONFIG = {
     DOWNLOAD_PATH: 'D:/FreshWhatsappAutomation/mvp/downloads',
     PROCESSED_PATH: 'D:/FreshWhatsappAutomation/mvp/processed',
     AUTH_PATH: 'D:/FreshWhatsappAutomation/mvp/auth',
+
+    // ============================================
+    // LEGACY - Backward compatibility
+    // ============================================
+
+    /**
+     * Legacy printer name (fallback)
+     * Maps to PRINTER_NORMAL
+     */
+    get PRINTER_NAME() {
+        return this.PRINTER_NORMAL;
+    }
 };

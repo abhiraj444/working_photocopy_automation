@@ -38,11 +38,24 @@ export async function handleUserMessage(
 
         case 'AWAITING_CONFIRMATION':
             if (text === 'YES') {
-                await handleConfirmPrint(phoneNumber, sendMessage, ownerNotify);
+                // Check if layout selection is enabled
+                if (CONFIG.ENABLE_LAYOUT_SELECTION) {
+                    await handleLayoutSelection(phoneNumber, sendMessage);
+                } else {
+                    await handleConfirmPrint(phoneNumber, sendMessage, ownerNotify);
+                }
             } else if (text === 'SKIP') {
                 await handleSkipRequest(phoneNumber, sendMessage);
             } else {
                 await sendMessage('Please reply:\n• *YES* - Print all files\n• *SKIP* - Remove unwanted files');
+            }
+            break;
+
+        case 'AWAITING_LAYOUT':
+            if (text === '1' || text === '2' || text === '4') {
+                await handleLayoutChoice(phoneNumber, text as '1' | '2' | '4', sendMessage, ownerNotify);
+            } else {
+                await sendMessage('Please reply with *1*, *2*, or *4*');
             }
             break;
 
@@ -52,7 +65,12 @@ export async function handleUserMessage(
 
         case 'AWAITING_FINAL_CONFIRMATION':
             if (text === 'YES') {
-                await handleConfirmPrint(phoneNumber, sendMessage, ownerNotify);
+                // Check if layout selection is enabled
+                if (CONFIG.ENABLE_LAYOUT_SELECTION) {
+                    await handleLayoutSelection(phoneNumber, sendMessage);
+                } else {
+                    await handleConfirmPrint(phoneNumber, sendMessage, ownerNotify);
+                }
             } else {
                 await sendMessage('Please reply *YES* to confirm printing');
             }
@@ -85,17 +103,68 @@ async function handlePendingJob(
 }
 
 /**
- * Handle YES confirmation - process and print
+ * Handle layout selection request
  */
-async function handleConfirmPrint(
+async function handleLayoutSelection(
     phoneNumber: string,
+    sendMessage: (text: string) => Promise<void>
+): Promise<void> {
+    const job = getJob(phoneNumber);
+    if (!job) return;
+
+    updateJobState(phoneNumber, 'AWAITING_LAYOUT');
+
+    const message = Messages.layoutPrompt(job.files, job.filesExcluded);
+    await sendMessage(message);
+}
+
+/**
+ * Handle layout choice (1/2/4) and print
+ */
+async function handleLayoutChoice(
+    phoneNumber: string,
+    layout: '1' | '2' | '4',
     sendMessage: (text: string) => Promise<void>,
     ownerNotify?: (text: string) => Promise<void>
 ): Promise<void> {
     const job = getJob(phoneNumber);
     if (!job) return;
 
+    // Store layout choice
+    job.layout = layout;
+
+    logger.info({ phoneNumber, layout }, 'Layout selected');
+
+    // Proceed to print
+    await handleConfirmPrint(phoneNumber, sendMessage, ownerNotify, layout);
+}
+
+/**
+ * Handle YES confirmation - process and print
+ */
+async function handleConfirmPrint(
+    phoneNumber: string,
+    sendMessage: (text: string) => Promise<void>,
+    ownerNotify?: (text: string) => Promise<void>,
+    layout?: '1' | '2' | '4'
+): Promise<void> {
+    const job = getJob(phoneNumber);
+    if (!job) return;
+
     try {
+        // Use job's layout if not passed directly
+        const selectedLayout = layout || job.layout || '1';
+
+        // Determine which printer to use based on layout
+        let printerName = CONFIG.PRINTER_NORMAL;
+        if (selectedLayout === '2') {
+            printerName = CONFIG.PRINTER_2ON1;
+        } else if (selectedLayout === '4') {
+            printerName = CONFIG.PRINTER_4ON1;
+        }
+
+        logger.info({ phoneNumber, layout: selectedLayout, printerName }, 'Selected printer for layout');
+
         // Update state
         updateJobState(phoneNumber, 'PROCESSING');
         await sendMessage(Messages.processing());
@@ -123,13 +192,14 @@ async function handleConfirmPrint(
             const ownerMsg = Messages.ownerPrintStart(
                 phoneNumber,
                 job.files,
-                job.filesExcluded
+                job.filesExcluded,
+                selectedLayout
             );
             await ownerNotify(ownerMsg);
         }
 
-        // Send to printer
-        await printToPrinter(renamedPaths);
+        // Send to printer with selected layout/printer
+        await printToPrinter(renamedPaths, printerName);
 
         logger.info({ phoneNumber }, 'Printing complete');
 

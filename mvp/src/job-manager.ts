@@ -24,8 +24,8 @@ export function createJob(phoneNumber: string): UserJob {
         files: [],
         filesExcluded: [],
         createdAt: now,
-        lastActivityAt: now,
-        expiresAt
+        expiresAt,
+        layout: undefined  // Layout selection (1/2/4)
     };
 
     activeJobs.set(phoneNumber, job);
@@ -71,7 +71,6 @@ export function updateJobState(phoneNumber: string, newState: JobState): void {
 
     const oldState = job.state;
     job.state = newState;
-    job.lastActivityAt = new Date();
 
     logger.info({ phoneNumber, oldState, newState }, 'Updated job state');
 }
@@ -83,7 +82,6 @@ export function addFileToJob(phoneNumber: string, file: JobFile): void {
     const job = getOrCreateJob(phoneNumber);
 
     job.files.push(file);
-    job.lastActivityAt = new Date();
 
     logger.info({
         phoneNumber,
